@@ -1,0 +1,21 @@
+services:
+  db:
+    # PostgreSQL 16 con la extension pgvector (articles.embedding)
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_DB: helpdesk
+      POSTGRES_USER: helpdesk
+      POSTGRES_PASSWORD: helpdesk
+      # Misma zona que la aplicacion (APP_TIMEZONE). Solo aplica con el volumen
+      # vacio: TZ fija la zona del servidor y PGTZ la de los scripts de init (seed).
+      TZ: America/Guatemala
+      PGTZ: America/Guatemala
+    ports: ["5433:5432"]
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      # Solo se ejecutan cuando el volumen esta vacio (primera vez o tras `docker compose down -v`)
+      - ./docs/database/database.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - ./docs/database/functions_triggers.sql:/docker-entrypoint-initdb.d/02-functions-triggers.sql:ro
+      - ./docs/database/seed.sql:/docker-entrypoint-initdb.d/03-seed.sql:ro
+volumes:
+  postgres_data:
