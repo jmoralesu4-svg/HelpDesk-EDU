@@ -5,18 +5,9 @@ mismo contrato que los repositorios SQLAlchemy, incluidos los ids asignados por
 el almacenamiento (un contador por tabla, como un SERIAL).
 """
 
-# 22/10/2026 - Agrego esta linea para que el proyecto funcione en Python 3.11 a 3.13:
-# la clase define un metodo llamado `list` y, sin ella, la anotacion `list[...]`
-# se evaluaria contra ese metodo y no contra el tipo nativo (TypeError al importar).
-from __future__ import annotations
-
-from dataclasses import replace
-
-from app.domain.clock import now
 from app.models.entities import Ticket, User
 from app.models.enums import TicketStatus
-from app.repositories.base import TicketPage, TicketQuery, TicketRepository, UserRepository
-from app.services.notifications import Notification, NotificationRepository
+from app.repositories.base import TicketRepository, UserRepository
 
 
 class InMemoryTicketRepository(TicketRepository):
@@ -76,20 +67,6 @@ class InMemoryTicketRepository(TicketRepository):
     def by_category(self, category: str) -> list[Ticket]:
         return self.list(category=category)
 
-    def search(self, query: TicketQuery) -> TicketPage:
-        """22/10/2026 - Aqui SI filtro en Python: es la version de juguete de lo que
-        SqlAlchemyTicketRepository hace con WHERE / ORDER BY / LIMIT."""
-        tickets = self.list(
-            status=query.status,
-            category=query.category,
-            priority=query.priority,
-            assignee_id=query.assignee_id,
-            requester_id=query.requester_id,
-        )
-        tickets.sort(key=lambda ticket: (ticket.created_at, ticket.id), reverse=True)
-        end = None if query.limit is None else query.offset + query.limit
-        return TicketPage(items=tickets[query.offset:end], total=len(tickets))
-
     def count_by_status(self) -> dict[str, int]:
         """22/10/2026 - Cuento en Python lo que PostgreSQL cuenta con un GROUP BY."""
         counts: dict[str, int] = {}
@@ -110,7 +87,6 @@ class InMemoryUserRepository(UserRepository):
 
     def __init__(self) -> None:
         self._items: dict[int, User] = {}
-        self._password_hashes: dict[int, str] = {}
         self._next_id = 1
 
     def add(self, user: User) -> User:
@@ -131,45 +107,3 @@ class InMemoryUserRepository(UserRepository):
 
     def all(self) -> list[User]:
         return list(self._items.values())
-
-    def password_hash_for(self, email: str) -> str | None:
-        user = self.by_email(email)
-        return self._password_hashes.get(user.id, "x") if user else None
-
-    def set_password_hash(self, user_id: int, password_hash: str) -> None:
-        self._password_hashes[user_id] = password_hash
-
-
-class InMemoryNotificationRepository(NotificationRepository):
-    """22/10/2026 - Bandeja de avisos en memoria (semana 15).
-
-    La necesite para demostrar la inyeccion de dependencias: con ella la fachada
-    completa corre en una prueba sin PostgreSQL. Hace lo mismo que la tabla
-    `notifications`: asigna un id propio y marca la fecha de lectura.
-    """
-
-    def __init__(self) -> None:
-        self._items: list[Notification] = []
-        self._next_id = 1
-
-    def add(self, notification: Notification) -> Notification:
-        stored = replace(
-            notification,
-            id=self._next_id,
-            created_at=notification.created_at or now(),
-        )
-        self._next_id += 1
-        self._items.append(stored)
-        return stored
-
-    def unread_for(self, user_id: int) -> list[Notification]:
-        unread = [n for n in self._items if n.user_id == user_id and n.read_at is None]
-        return sorted(unread, key=lambda n: (n.created_at, n.id), reverse=True)
-
-    def mark_all_read(self, user_id: int) -> int:
-        updated = 0
-        for index, item in enumerate(self._items):
-            if item.user_id == user_id and item.read_at is None:
-                self._items[index] = replace(item, read_at=now())
-                updated += 1
-        return updated

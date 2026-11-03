@@ -72,12 +72,6 @@ class UserNotFoundError(NotFoundError):
         )
 
 
-class AuthenticationError(DomainError):
-    """Raised when the caller is not identified (or the identity is unknown)."""
-
-    code = "unauthenticated"
-
-
 class PermissionDeniedError(DomainError):
     """Raised when an actor is not allowed to perform an action."""
 

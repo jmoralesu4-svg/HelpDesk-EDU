@@ -18,9 +18,7 @@ from app.services.tickets import TicketService
 from app.services.users import UserService
 
 
-# 22/10/2026 - Semana 17: la variante "postgres" pide la fixture `db` en tiempo de ejecucion (getfixturevalue),
-# asi que conftest no la ve; la marco yo como integracion para que `-m "not integration"` no necesite PostgreSQL.
-@pytest.fixture(params=["memory", pytest.param("postgres", marks=pytest.mark.integration)])
+@pytest.fixture(params=["memory", "postgres"])
 def contract(request):
     """22/10/2026 - Devuelvo (repositorio, servicio, solicitante) para cada implementacion."""
     if request.param == "memory":

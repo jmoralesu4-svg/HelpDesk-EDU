@@ -9,15 +9,6 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from datetime import datetime
 
-from app.domain.events import (
-    TicketAssigned,
-    TicketCancelled,
-    TicketCommented,
-    TicketCreated,
-    TicketEvent,
-    TicketStatusChanged,
-)
-
 
 @dataclass(frozen=True)
 class Notification:
@@ -116,19 +107,6 @@ class NotificationRepository(ABC):
         ...
 
 
-class NotificationService:
-    """22/10/2026 - Los avisos de una persona: lo que tiene sin leer y marcarlos como leidos."""
-
-    def __init__(self, repository: NotificationRepository) -> None:
-        self._repository = repository
-
-    def unread_for(self, user_id: int) -> list[Notification]:
-        return self._repository.unread_for(user_id)
-
-    def mark_all_read(self, user_id: int) -> int:
-        return self._repository.mark_all_read(user_id)
-
-
 # El servicio sigue llamando a notify() con un codigo ("ticket_assigned") como
 # `title`; al guardar, ese codigo pasa a la columna `type` y el titulo que ve
 # el usuario es un texto legible.
@@ -168,35 +146,3 @@ class DatabaseNotifier(Notifier):
                 type=notification_type,
             )
         )
-
-
-# 22/10/2026 - Adaptador entre el Observer y el Notifier de las semanas anteriores.
-# Traduce cada evento de dominio a la MISMA llamada notify(...) de siempre (mismos
-# codigos y mismos textos), asi los notificadores y las pruebas viejas no cambian.
-# La regla "no avisar al solicitante de su propio comentario" vive aqui, porque es
-# una regla de avisos y no del ticket.
-class NotifierSubscriber:
-    """22/10/2026 - Suscriptor que convierte eventos de ticket en avisos via un Notifier."""
-
-    def __init__(self, notifier: Notifier) -> None:
-        self._notifier = notifier
-
-    def __call__(self, event: TicketEvent) -> None:
-        if isinstance(event, TicketCreated):
-            self._send(event.requester_id, event, f"Ticket #{event.ticket_id} was created")
-        elif isinstance(event, TicketAssigned):
-            self._send(event.technician_id, event, f"Ticket #{event.ticket_id} was assigned to you")
-        elif isinstance(event, TicketCommented):
-            if event.actor_id != event.requester_id:
-                self._send(event.requester_id, event, f"Ticket #{event.ticket_id} has a new comment")
-        elif isinstance(event, TicketStatusChanged):
-            self._send(
-                event.requester_id,
-                event,
-                f"Ticket #{event.ticket_id} changed to {event.new_status.value}",
-            )
-        elif isinstance(event, TicketCancelled):
-            self._send(event.requester_id, event, f"Ticket #{event.ticket_id} was cancelled")
-
-    def _send(self, user_id: int, event: TicketEvent, message: str) -> None:
-        self._notifier.notify(user_id, event.name, message, ticket_id=event.ticket_id)

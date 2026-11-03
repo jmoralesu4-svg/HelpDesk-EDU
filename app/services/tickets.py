@@ -7,7 +7,6 @@ el servicio ya no lleva contadores propios (semana 13).
 
 from __future__ import annotations
 
-from collections.abc import Iterable
 from datetime import datetime
 
 from app.domain.clock import now
@@ -16,55 +15,28 @@ from app.domain.errors import (
     TicketNotFoundError,
     ValidationError,
 )
-from app.domain.events import (
-    TicketAssigned,
-    TicketCancelled,
-    TicketCommented,
-    TicketCreated,
-    TicketEvent,
-    TicketStatusChanged,
-)
 from app.domain.workflow import assert_transition
 from app.models.assignments import Assignment
 from app.models.comments import Comment
 from app.models.entities import HistoryEvent, Ticket, User
 from app.models.enums import CATEGORIES, PRIORITIES, Role, TicketStatus
-from app.repositories.base import TicketPage, TicketQuery, TicketRepository
-from app.services.events import EventPublisher, TicketEventSubscriber
-from app.services.notifications import Notifier, NotifierSubscriber, NullNotifier
+from app.repositories.base import TicketRepository
+from app.services.notifications import Notifier, NullNotifier
 from app.services.users import UserService
 
 
 class TicketService:
-    """22/10/2026 - Casos de uso de tickets: crear, asignar, comentar, cambiar estado y prioridad.
-
-    Semana 15: ya no llama al notificador directamente. Cada caso de uso publica un
-    evento de dominio y quien quiera reaccionar (avisos, auditoria...) se suscribe.
-    """
+    """22/10/2026 - Casos de uso de tickets: crear, asignar, comentar, cambiar estado y prioridad."""
 
     def __init__(
         self,
         repository: TicketRepository,
         users: UserService,
         notifier: Notifier | None = None,
-        subscribers: Iterable[TicketEventSubscriber] = (),
     ) -> None:
         self._repository = repository
         self._users = users
-        self._events = EventPublisher()
-        # 22/10/2026 - Compatibilidad: el parametro `notifier` de las semanas 7-13
-        # sigue funcionando; ahora solo se envuelve como un suscriptor mas.
-        self._events.subscribe(NotifierSubscriber(notifier or NullNotifier()))
-        for subscriber in subscribers:
-            self._events.subscribe(subscriber)
-
-    def subscribe(self, subscriber: TicketEventSubscriber) -> None:
-        """22/10/2026 - Agrega un suscriptor despues de construir el servicio."""
-        self._events.subscribe(subscriber)
-
-    def unsubscribe(self, subscriber: TicketEventSubscriber) -> None:
-        """22/10/2026 - Da de baja un suscriptor."""
-        self._events.unsubscribe(subscriber)
+        self._notifier = notifier or NullNotifier()
 
     def create(
         self,
@@ -93,12 +65,11 @@ class TicketService:
             status=TicketStatus(status),
         )
         stored = self._repository.add(ticket)
-        self._publish(
-            TicketCreated(
-                ticket_id=stored.id,
-                actor_id=resolved_requester_id,
-                requester_id=resolved_requester_id,
-            )
+        self._notify(
+            user_id=resolved_requester_id,
+            title="ticket_created",
+            message=f"Ticket #{stored.id} was created",
+            ticket_id=stored.id,
         )
         return stored
 
@@ -114,49 +85,10 @@ class TicketService:
             requester_id=requester_id,
         )
 
-    def list_for(
-        self,
-        actor: User,
-        status: TicketStatus | str | None = None,
-        category: str | None = None,
-        priority: str | None = None,
-        assignee_id: int | None = None,
-        requester_id: int | None = None,
-        limit: int | None = None,
-        offset: int = 0,
-    ) -> TicketPage:
-        """22/10/2026 - Lista lo que `actor` puede ver: el personal todo, un solicitante lo suyo."""
-        if category is not None and category not in CATEGORIES:
-            raise ValidationError("category is invalid", field="category")
-        if priority is not None and priority not in PRIORITIES:
-            raise ValidationError("priority is invalid", field="priority")
-        if not actor.is_staff:
-            # Pedir los tickets de otra persona no da error ni los revela: da vacio.
-            if requester_id not in (None, actor.id):
-                return TicketPage()
-            requester_id = actor.id
-        return self._repository.search(
-            TicketQuery(
-                status=status,
-                category=category,
-                priority=priority,
-                assignee_id=assignee_id,
-                requester_id=requester_id,
-                limit=limit,
-                offset=offset,
-            )
-        )
-
     def require(self, ticket_id: int) -> Ticket:
         ticket = self._repository.by_id(ticket_id)
         if ticket is None:
             raise TicketNotFoundError(ticket_id)
-        return ticket
-
-    def require_for(self, actor: User, ticket_id: int) -> Ticket:
-        """22/10/2026 - Como require(), pero un ticket ajeno "no existe" para un solicitante."""
-        ticket = self.require(ticket_id)
-        self._ensure_visible(ticket, actor)
         return ticket
 
     def by_id(self, ticket_id: int) -> Ticket | None:
@@ -177,17 +109,15 @@ class TicketService:
         technician_id: int,
         actor: User | None = None,
     ) -> Ticket:
-        # El permiso se revisa ANTES de buscar el ticket: quien no es personal
-        # recibe 403 igual exista o no, asi no se averigua que ids existen.
+        ticket = self.require(ticket_id)
+        self._ensure_open(ticket)
+        technician = self._users.require(technician_id)
         if actor is not None and not actor.is_staff:
             raise PermissionDeniedError(
                 "Only staff users can assign tickets",
                 actor_id=actor.id,
                 ticket_id=ticket_id,
             )
-        ticket = self.require(ticket_id)
-        self._ensure_open(ticket)
-        technician = self._users.require(technician_id)
         if Role(technician.role) not in {Role.TECHNICIAN, Role.SUPERVISOR}:
             raise ValidationError(
                 "assignee must be support staff",
@@ -204,13 +134,11 @@ class TicketService:
             detail=f"assigned to {technician.name}",
         )
         self._repository.update(ticket)
-        self._publish(
-            TicketAssigned(
-                ticket_id=ticket.id,
-                actor_id=actor.id if actor is not None else technician_id,
-                requester_id=ticket.requester_id,
-                technician_id=technician_id,
-            )
+        self._notify(
+            user_id=technician_id,
+            title="ticket_assigned",
+            message=f"Ticket #{ticket.id} was assigned to you",
+            ticket_id=ticket.id,
         )
         return ticket
 
@@ -226,15 +154,12 @@ class TicketService:
         author_id: int | None = None,
     ) -> Comment:
         ticket = self.require(ticket_id)
+        self._ensure_open(ticket)
         resolved_author_id = self._resolve_user_id(
             author,
             fallback_id=author_id,
             field="author_id",
         )
-        # Quien no puede ver el ticket tampoco puede comentarlo (404, no 403).
-        author_user = author if isinstance(author, User) else self._users.require(resolved_author_id)
-        self._ensure_visible(ticket, author_user)
-        self._ensure_open(ticket)
         if body is None:
             raise ValidationError("comment body is required", field="body")
         trimmed_body = body.strip()
@@ -255,14 +180,13 @@ class TicketService:
             detail="comment added",
         )
         self._repository.update(ticket)
-        self._publish(
-            TicketCommented(
+        if resolved_author_id != ticket.requester_id:
+            self._notify(
+                user_id=ticket.requester_id,
+                title="ticket_commented",
+                message=f"Ticket #{ticket.id} has a new comment",
                 ticket_id=ticket.id,
-                actor_id=resolved_author_id,
-                requester_id=ticket.requester_id,
-                comment_id=comment.id,
             )
-        )
         return comment
 
     def add_comment(self, ticket_id: int, author_id: int, body: str) -> Comment:
@@ -276,14 +200,14 @@ class TicketService:
         new_priority: str,
         actor: User,
     ) -> Ticket:
+        ticket = self.require(ticket_id)
+        self._ensure_open(ticket)
         if not actor.is_staff:
             raise PermissionDeniedError(
                 "Only staff users can change ticket priority",
                 actor_id=actor.id,
                 ticket_id=ticket_id,
             )
-        ticket = self.require(ticket_id)
-        self._ensure_open(ticket)
         if new_priority not in PRIORITIES:
             raise ValidationError("priority is invalid", field="priority")
 
@@ -306,13 +230,13 @@ class TicketService:
         new_status: TicketStatus | str,
         actor: User,
     ) -> Ticket:
+        ticket = self.require(ticket_id)
         if not actor.is_staff:
             raise PermissionDeniedError(
                 "Only staff users can change ticket status",
                 actor_id=actor.id,
                 ticket_id=ticket_id,
             )
-        ticket = self.require(ticket_id)
 
         target_status = TicketStatus(new_status)
         previous_status = ticket.status
@@ -326,13 +250,11 @@ class TicketService:
             detail=ticket.status.value,
         )
         self._repository.update(ticket)
-        self._publish(
-            TicketStatusChanged(
-                ticket_id=ticket.id,
-                actor_id=actor.id,
-                requester_id=ticket.requester_id,
-                new_status=ticket.status,
-            )
+        self._notify(
+            user_id=ticket.requester_id,
+            title="ticket_status_changed",
+            message=f"Ticket #{ticket.id} changed to {ticket.status.value}",
+            ticket_id=ticket.id,
         )
         return ticket
 
@@ -366,12 +288,11 @@ class TicketService:
             detail="cancelled",
         )
         self._repository.update(ticket)
-        self._publish(
-            TicketCancelled(
-                ticket_id=ticket.id,
-                actor_id=resolved_requester_id,
-                requester_id=ticket.requester_id,
-            )
+        self._notify(
+            user_id=resolved_requester_id,
+            title="ticket_cancelled",
+            message=f"Ticket #{ticket.id} was cancelled",
+            ticket_id=ticket.id,
         )
         return ticket
 
@@ -409,10 +330,6 @@ class TicketService:
         self._users.require(user_id)
         return user_id
 
-    def _ensure_visible(self, ticket: Ticket, user: User) -> None:
-        if not user.is_staff and ticket.requester_id != user.id:
-            raise TicketNotFoundError(ticket.id)
-
     def _ensure_open(self, ticket: Ticket) -> None:
         if not ticket.is_open:
             raise ValidationError(
@@ -429,9 +346,14 @@ class TicketService:
         if priority not in PRIORITIES:
             raise ValidationError("priority is invalid", field="priority")
 
-    def _publish(self, event: TicketEvent) -> None:
-        """22/10/2026 - Unico punto por donde sale un evento hacia los suscriptores."""
-        self._events.publish(event)
+    def _notify(
+        self,
+        user_id: int,
+        title: str,
+        message: str,
+        ticket_id: int | None = None,
+    ) -> None:
+        self._notifier.notify(user_id, title, message, ticket_id=ticket_id)
 
     def _now(self) -> datetime:
         return now()
