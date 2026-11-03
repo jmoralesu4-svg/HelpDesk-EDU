@@ -25,7 +25,7 @@ git checkout -b feature/week-07-models
 
 ```bash
 git status
-git add . # agrega todo
+git add . # agrega todo 
 git commit -m "feat(models): add initial user and ticket domain"
 git push -u origin feature/week-07-models
 ```
@@ -75,126 +75,19 @@ touch README.md .gitignore pyproject.tomlmkdir -p app/models app/services app/re
 
 ### 2.3.1 Estructura del proyecto
 
-HelpDesk_EDU/
-├── .github
-│ ├── workflows
-│ │ └── ci.yml
-│ └── pull_request_template.md
-├── app
-│ ├── api #api rest (end-point que van a recibir y enviar datos, get, push, put, post)
-│ │ ├── routes
-│ │ │ ├── __init__.py
-│ │ │ ├── assistance.py
-│ │ │ ├── auth.py
-│ │ │ ├── knowledge_base.py
-│ │ │ ├── mobile.py
-│ │ │ ├── notifications.py
-│ │ │ ├── system.py
-│ │ │ ├── tickets.py
-│ │ │ └── users.py
-│ │ └── __init__.py
-│ ├── core
-│ │ ├── __init__.py
-│ │ ├── config.py
-│ │ ├── database.py
-│ │ ├── dependencies.py
-│ │ └── security.py
-│ ├── domain
-│ │ ├── __init__.py
-│ │ ├── errors.py
-│ │ └── workflow.py
-│ ├── models
-│ │ ├── __init__.py
-│ │ ├── entities.py
-│ │ └── enums.py
-│ ├── repositories
-│ │ ├── __init__.py
-│ │ ├── articles.py
-│ │ ├── base.py
-│ │ ├── notifications.py
-│ │ └── sqlalchemy.py
-│ ├── schemas
-│ │ ├── __init__.py
-│ │ ├── articles.py
-│ │ ├── assistance.py
-│ │ ├── auth.py
-│ │ ├── mobile.py
-│ │ ├── notifications.py
-│ │ ├── tickets.py
-│ │ └── users.py
-│ ├── services
-│ │ ├── __init__.py
-│ │ ├── articles.py
-│ │ ├── assistance.py
-│ │ ├── auth.py
-│ │ ├── notifications.py
-│ │ ├── tickets.py
-│ │ └── users.py
-│ ├── web
-│ │ ├── templates
-│ │ │ ├── portal
-│ │ │ │ ├── _ticket_table.html
-│ │ │ │ ├── detail.html
-│ │ │ │ ├── home.html
-│ │ │ │ ├── new.html
-│ │ │ │ └── tickets.html
-│ │ │ ├── staff
-│ │ │ │ ├── _ticket_table.html
-│ │ │ │ ├── dashboard.html
-│ │ │ │ ├── detail.html
-│ │ │ │ ├── new.html
-│ │ │ │ ├── notifications.html
-│ │ │ │ └── tickets.html
-│ │ │ ├── base_public.html
-│ │ │ ├── base_staff.html
-│ │ │ ├── knowledge_base.html
-│ │ │ ├── landing.html
-│ │ │ └── login.html
-│ │ ├── __init__.py
-│ │ └── routes.py
-│ ├── __init__.py
-│ └── main.py
-├── docs
-│ ├── database
-│ │ ├── er.md
-│ │ ├── queries.sql
-│ │ ├── schema.sql
-│ │ └── seed.sql
-│ ├── decisions
-│ │ ├── 0001-fastapi-y-sqlalchemy.md
-│ │ └── 0002-errores-de-dominio.md
-│ ├── architecture.md
-│ ├── manual_tecnico.md
-│ └── manual_usuario.md
-├── scripts
-│ ├── __init__.py
-│ ├── backup_db.py
-│ ├── console.py
-│ ├── seed_demo.py
-│ └── sql_lab.py
-├── tests
-│ ├── __init__.py
-│ ├── conftest.py
-│ ├── test_week07_domain.py
-│ ├── test_week08_relations.py
-│ ├── test_week09_architecture.py
-│ ├── test_week10_schema.py
-│ ├── test_week11_persistence.py
-│ ├── test_week12_exam.py
-│ ├── test_week13_persistence.py
-│ ├── test_week14_api.py
-│ ├── test_week15_architecture.py
-│ ├── test_week15_web.py
-│ ├── test_week16_release.py
-│ └── test_week17_modules.py
-├── .dockerignore
-├── .env.example
-├── .gitignore
-├── .python-version
-├── Dockerfile
-├── README.md
-├── docker-compose.yml
-└── pyproject.toml
+helpdesk
+|--app/
+  |
+  |--core/
+  |--models/
+  |--repositories/
+  |--shcemas/
+  |--services/
+|--docs/
+|--test/
+|-- .gitignore
+|-- pyproject.toml
+|-- README.md
 
 ## 2.4 .gitignore
 
@@ -240,7 +133,7 @@ gh repo create TU_USUARIO/HelpDesk_EDU --public --source=. --remote=origin --pus
 Si el repositorio ya fue creado en GitHub:
 
 ```bash
-git remote add origin https://github.com/TU_USUARIO/HelpDesk_EDU.gitgit
+git remote add origin https://github.com/TU_USUARIO/HelpDesk_EDU.gitgit 
 git push -u origin main
 ```
 
@@ -248,7 +141,7 @@ git push -u origin main
 
 ```bash
 git checkout -b develper
-git push -u origin develper
+git push -u origin develper 
 ```
 
 Por qué: developer será la rama de integración del curso. Cada avance semanal entra primero allí. Solo cuando una etapa esté validada se prepara un PR hacia main.
@@ -367,179 +260,3 @@ git add .
 git commit -m "feat(domain): complete week 8 increment"
 git push -u origin feature/week-8-relaciones-practicas-tecnico-categoria
 ```
-
-
-## Abstracción, repositorios, polimorfismo y excepciones
-
-## Incremente: Separar reglas de negocio de almacenamiento y manjear errores del dominio
-
-con esto el sistema separará dominio, respositorios y servicios. El almacenamiento en memoria quedará detrás de una abstracción.
-
-## Primero vamos a revisar el Status de nuestro flujo de git de la semana
-
-```git
-git chetckout developer
-git pull origin developer #recuerde este comando permite traer todo lo que tenemos en el repositorio.
-git checkout -b feature/week-9-abstraccion-repositorio-polimorfismo
-```
-
-## para los test en cada feature realizar las pruebas minimas
-
-```bash
- uv run pytest -q
-```
-
-## commit de la semana
-
-```git
-git status
-git add .
-git commit -m "feat(architecture): complete week 9 increment"
-git push -u origin feature/week-9-abstraccion-repositorio-polimorfismo
-```
-
-## Crear el Pull Request hacia develper
-
-``` git
-gh pr create --base developer --head feature/weei-9-abstraccion-repositorios-polimorfismo --title "feat(architecture): week 9 increment" --body "Week 9 increment. Includes source code, validation evidence, and acceptance checklist."
-```
-
-## validaciones o checklist
-
-Checklist del PR:
-☐ El PR sale de una rama feature/*.
-☐ La base del PR es developer.
-☐ Hay explicación de qué cambió.
-☐ Hay evidencia de validación.
-☐ No se subieron .env, .venv, bases locales ni secretos.
-
-## merge a la rama
-
-``` git
-git checkout developer
-git pull origin developer
-git branch --delete feature/week-9-abstraccion-repositorios-polimorfismo
-```
-## SEMANA 10 Y 11
-Entidades del negocio del sistema Help Desk Edu. 
-
-## users
-Pregunta de negocio: Quién reporta, atiende, comenta, administra?
-
-├ Atributo --├── Tipo         ----├── Restricciones           ├── Por qué este tipo                                                   ├── Origen en el ORM              ├
-├ id.        ├   INTEGER (SERIAL).├──   PK, NO ACEPTA NULOS.  ├── Identificador interno; la base de datos lo asgina al insertar.      ├─mapperd_column(primary_key=true)
-├ email      ├.  VARCHAR(120).    ├──. NO ACEPTA NULOS, UNICO ├── Es una llave natural (candidata) para el login, UNIQUE              ├──. 
-├ name.      ├   VARCAHR(100).    ├──. NO ACEPTA NULOS        ├── Nombres que podemos mostrar con 100 caracteres.                     ├──. String(100)
-├ role       ├── VARCHAR(20).     ├──. NO ACEPTA NULOS.       ├── Vocabulario cerrado (Administrador,Supervisor,Tecnico,recepcionista)├──  String(20) Validado por Roles├
-├ password_h ├─. VARCHAR(255).    ├──  NO ACEPTA NULOS.       ├── Hash PBKDF2-SHA256 con sal(~90 caracteres); 255 margen algoritmos.  ├──. hash_password
-
-
-Dependencias funcionales: id -> email,name, role, passowrd_hash; email -> id (llave candidata alterna)
-FORMA NORMAL: 3FN (y BCNF). Está en 1FN (valores atómicos, PK), en 2FN Trivialmente (PK simple, no hay dependencias); en 3FN porque ningún atributo no clave depende de otro no clave: name, role y password_hash dependen del usuario. email es determinante  pero es llave candidata, lo que cumple también BNCF.
-
-# semana 13
-## Entorno y verificación
-Lista de comprobación para empezar. 
-
-# Checklist de inicio
-  1-*Actualizar la rama de integración*
-  ```git
-  git checkout developer && git pull
-  ```
-  Por qué: cada sesión parte del trabajo ya integrado. 
-
-  2-*Verificar Docker está activo* (MacOS: Colima)
-  ```terminal
-  colima status
-  docker status
-  docker ps
-  ```
-  3-*Levantar la base de datos y confirmar su estado*
-  ```terminal
-  docker compose up -d db
-  docker compose ps
-  ```
-  Resultado esperado: El servicio 'db' debe aparecer como runnig, puerto publicado y el name de la BD. 
-
-  4- *Instalar las deperencias*
-  ```terminal 
-    uv sync
-  ```
-  4.1- *Listar depencias instaladas*
-  ```terminal
-    uv pip list
-  ```
-  deberia mostrar lo siguiente:
-
-  ```terminal 
-  Package           Version
------------------ -------
-  iniconfig         2.3.0
-  packaging         26.3
-  pluggy            1.6.0
-  psycopg           3.3.5
-  psycopg-binary    3.3.5
-  pygments          2.21.0  
-  pytest            9.1.1
-  sqlalchemy        2.0.54
-  typing-extensions 4.16.0
-```
-
-## Datos de conexión
-Servidor = localhost
-Puerto (host) = 5433
-Base de datos de práctica = helpdesk-db-1
-Usuario / password = helpdesk | helpdesk
-imagen (contenedor de docker) = PostgreSQL 16 con pgvector
-
-el puerto 5433 se usa a propósito para no chocar con un PostgreSQL local con el puerto pode default = 5432
-
-## Script de inicialización y cómo reinciar la base de datos
-Al crear el contenedor por primera vez, PostgreSQL ejecuta los scripts de docs/database/ database.sql
-
-para volver a un estado limpio:
-```terminal 
-docker compose down -v 
-dcoker compose up -d db
-```
-**Advertencia: 'docker compose down -v' elimina el volumen y todo los datos de la DB de helpdesk.**
-
-## La conexion a la BD
-esta se integra en las variables de entorno con el nombre 'TEST_DATABASE_URL'. 
-
-
-```terminal 
-  export TEST_DATABASE_URL="postgresql+psycopg://helpdesk:helpdesk@localhost:5433/helpdesk_test"
-```
-
-## Problemas frecuentes 
-Síntoma = No conecta  --> Causa probable = Hay un postgreSQL local y esta corriendo en el mismo puerto. 
-Síntoma = El contenedor 'db' aparece como 'Exited' tras reiniciar docker o colima o el equipo. Causa probable -> Los contenedores se deteiene al apagar docker.
-Síntoma = role 'helpdesk' does not exist. Causa probable -> Te conectaste al servidor equivicoda con el puerto incorrecto. 
-Síntoma = Las pruebas aparece como skipped. Causa probable -> PostgreSQL no está disponible y las pruebas de integración se omiten. 
-Síntoma = Cambié 'database.sql' pero la base sigue igual. Causa probable -> Los scripts solo corren con un volumen vacío. 
-Síntoma = docker: 'command not found' o 'Cannot connect to the docker deamon'. Causa probable -> Docker / Colima no está iniciado. 
-
-# verificación final del etorno
-si estro tres comandos terminan sin error, estás listo para trabajar !!
-
-```terminal 
-  docker compose ps
-  uv sync
-  uv run pytest -q
-```
-
-## Paso 3 - Las pruebas primero (RED)
-
-Qué cambia: tests/test_week11_persistence.py pasa de SQLite en memoria a la fixture db de PostgreSQL, y se agregan cinco pruebas que describen elcomportamiento correcto.
-Por qué:
-antes de cambiar el código hay que demostrar que el problema existe y tener una forma objetiva de saber cuándo está resuelto. Cada prueba nueva corresponde a un error de la sección 2:
- Prueba= test_assign_on_seeded_ticket_with_a_fresh_service --[Qué demuestra] = Asignar un ticket del seed con un servicio nuevo
- Prueba= test_comment_on_seeded_ticket_with_a_fresh_service --[Qué demuestra] = El comentario no se descarta en silencio
- prueba= test_comments_from_two_service_instances_are_both_persisted --[Qué demuestra] = Dos servicios distintos no se interfieren
- prueba= test_plain_sql_insert_after_service_inserts_gets_a_free_id --[Qué demuestra] = Un INSERT sin id sigue funcionando
- prueba= test_repositories_write_generated_ids_back_to_domain_objects --[Qué demuestra] =Los ids generados llegan al objeto de dominio
- 
-
-
-
