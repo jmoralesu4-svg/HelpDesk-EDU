@@ -19,7 +19,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
 from app.api.dependencies import ServicesDep
-from app.core.database import session_scope
+from app.core.database import dispose_engine, init_engine, session_scope
 from app.domain.clock import now
 from app.domain.errors import (
     ConflictError,
@@ -47,9 +47,7 @@ NEW_TICKET = {
 
 @pytest.fixture
 def client(committed_db):
-    # 22/10/2026 - Con `with`, el lifespan cierra el pool de conexiones de la app al terminar.
-    with TestClient(create_app()) as test_client:
-        yield test_client
+    return TestClient(create_app())
 
 
 def assert_error(response, status_code, code):
@@ -73,10 +71,11 @@ def test_health_checks_the_database(client):
 
 
 def test_health_returns_503_when_the_database_is_down():
-    # 22/10/2026 - Semana 15: la URL mala se la paso a ESTA app; ya no hay engine global que mutar.
-    app = create_app(database_url="postgresql+psycopg://helpdesk:helpdesk@localhost:5999/helpdesk_test")
-    with TestClient(app) as bad_client:
-        response = bad_client.get("/api/health")
+    init_engine("postgresql+psycopg://helpdesk:helpdesk@localhost:5999/helpdesk_test")
+    try:
+        response = TestClient(create_app()).get("/api/health")
+    finally:
+        dispose_engine()
 
     body = assert_error(response, 503, "database_unavailable")
     assert "helpdesk:" not in body["message"]  # nunca filtrar credenciales

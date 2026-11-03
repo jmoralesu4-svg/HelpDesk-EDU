@@ -51,9 +51,7 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 @pytest.fixture
 def client(committed_db):
-    # 22/10/2026 - Con `with`, el lifespan cierra el pool de conexiones de la app al terminar.
-    with TestClient(create_app()) as test_client:
-        yield test_client
+    return TestClient(create_app())
 
 
 def login(client, email=REQUESTER_EMAIL, password=TEST_PASSWORD):
